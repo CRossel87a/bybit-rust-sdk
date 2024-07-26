@@ -1,6 +1,6 @@
 pub mod utils;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, ensure};
 use serde::Serialize;
 use hmac::{Hmac, Mac};
 use serde_json::{json, Value};
@@ -32,7 +32,7 @@ pub enum TradeDirection {
     Sell
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub enum OrderType {
     Market,
     Limit
@@ -170,6 +170,46 @@ impl Bybit {
 
         Ok(())
     }
+
+    pub async fn create_order(&self, category: Category, symbol: &str, side: TradeDirection, order_type: OrderType, q: f64, price: Option<f64>, time_in_force: Option<TimeInForce>) -> anyhow::Result<()> {
+
+        let endpoint = "/v5/order/create";
+
+        if order_type.eq(&OrderType::Limit) {
+            ensure!(price.is_some(), "create_order() missing price");
+        }
+
+        let mut params = json!({
+            "category": category,
+            "symbol": symbol,
+            "side": side,
+            "qty": q.to_string(),
+            "orderType": order_type,
+        });
+
+        if let Some(p) = price {
+            params["price"] = json!(p.to_string());
+        }
+
+        if let Some(tip) = time_in_force {
+            params["timeInForce"] = json!(tip);
+        }
+
+        let raw_request_body = params.to_string();
+        println!("{raw_request_body}");
+
+        let timestamp = get_timestamp();
+
+        let signature = self.make_signature(timestamp, &raw_request_body)?;
+        let resp = self.post_signed(endpoint, timestamp, &signature, params).await?;
+        let txt = resp.text().await.unwrap();
+
+
+        // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722030653718}
+        println!("resp: {txt}");
+
+        Ok(())
+    }
 }
 
 
@@ -178,40 +218,6 @@ mod tests {
     use utils::unlock_keys;
     use serde_json::json;
     use super::*;
-
-    #[tokio::test]
-    async fn test_make_data() {
-
-        let (api_key, api_secret) = unlock_keys().unwrap();
-
-        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
-
-
-        let symbol = "ETHUSDT";
-        let qty = "0.1";
-        let price = "3000.21";
-        let endpoint = "/v5/order/create";
-
-        let data = json!({
-            "category": Category::Linear,
-            "symbol": symbol,
-            "side": TradeDirection::Buy,
-            "qty": qty,
-            "orderType": OrderType::Limit,
-            "price": price,
-            "timeInForce": TimeInForce::PostOnly
-        });
-        let raw_request_body = data.to_string();
-        println!("{raw_request_body}");
-
-        let timestamp = get_timestamp();
-
-        let signature = bybit.make_signature(timestamp, &raw_request_body).unwrap();
-        let resp = bybit.post_signed(endpoint, timestamp, &signature, data).await.unwrap();
-        let txt = resp.text().await.unwrap();
-        println!("resp: {txt}");
-        // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722029716378}
-    }
 
     #[tokio::test]
     pub async fn test_cancel_order() {
@@ -228,5 +234,21 @@ mod tests {
 
         let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
         bybit.cancel_all_orders(Category::Linear, "ETHUSDT").await.unwrap();
+    }
+
+    #[tokio::test]
+    pub async fn test_create_limit_order() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+        bybit.create_order(Category::Linear, "ETHUSDT", TradeDirection::Buy, OrderType::Limit, 0.1, Some(3000.21), Some(TimeInForce::GTC)).await.unwrap();
+    }
+
+    #[tokio::test]
+    pub async fn test_create_market_order() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+        bybit.create_order(Category::Linear, "ETHUSDT", TradeDirection::Sell, OrderType::Market, 0.01, None, None).await.unwrap();
     }
 }
