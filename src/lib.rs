@@ -3,7 +3,7 @@ pub mod utils;
 use anyhow::anyhow;
 use serde::Serialize;
 use hmac::{Hmac, Mac};
-use serde_json::Value;
+use serde_json::{json, Value};
 use sha2::Sha256;
 
 use reqwest::Client;
@@ -45,6 +45,11 @@ pub enum TimeInForce {
     GTC,
     IOC,
     FOK
+}
+
+pub enum OrderId {
+    OrderID(String),
+    OrderLinkID(String)
 }
 
 pub struct Bybit {
@@ -109,6 +114,62 @@ impl Bybit {
         .send().await?;
         Ok(resp)
     }
+
+    pub async fn cancel_order(&self, category: Category, symbol: &str, order_id: OrderId) -> anyhow::Result<()> {
+        let endpoint = "/v5/order/cancel";
+
+        let mut params = json!({
+            "category": category,
+            "symbol": symbol,
+        });
+
+        match order_id {
+            OrderId::OrderID(id) => {
+                params["orderId"] = json!(id);
+            },
+            OrderId::OrderLinkID(id) => {
+                params["orderLinkId"] = json!(id);
+            }
+        }
+
+        let raw_request_body = params.to_string();
+        println!("{raw_request_body}");
+
+        let timestamp = get_timestamp();
+
+        let signature = self.make_signature(timestamp, &raw_request_body)?;
+        let resp = self.post_signed(endpoint, timestamp, &signature, params).await?;
+        let txt = resp.text().await.unwrap();
+        println!("resp: {txt}");
+
+        // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxxxx","orderLinkId":""},"retExtInfo":{},"time":1722029558512}
+
+        Ok(())
+    }
+
+    pub async fn cancel_all_orders(&self, category: Category, symbol: &str) -> anyhow::Result<()> {
+        let endpoint = "/v5/order/cancel-all";
+
+        let mut params = json!({
+            "category": category,
+            "symbol": symbol,
+        });
+
+        let raw_request_body = params.to_string();
+        println!("{raw_request_body}");
+
+        let timestamp = get_timestamp();
+
+        let signature = self.make_signature(timestamp, &raw_request_body)?;
+        let resp = self.post_signed(endpoint, timestamp, &signature, params).await?;
+        let txt = resp.text().await.unwrap();
+
+
+        // {"retCode":0,"retMsg":"OK","result":{"list":[{"orderId":"xxxxx","orderLinkId":""}],"success":"1"},"retExtInfo":{},"time":1722029752786}
+        println!("resp: {txt}");
+
+        Ok(())
+    }
 }
 
 
@@ -149,5 +210,23 @@ mod tests {
         let resp = bybit.post_signed(endpoint, timestamp, &signature, data).await.unwrap();
         let txt = resp.text().await.unwrap();
         println!("resp: {txt}");
+        // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722029716378}
+    }
+
+    #[tokio::test]
+    pub async fn test_cancel_order() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+        let order_id = String::from("xxxxx");
+        bybit.cancel_order(Category::Linear, "ETHUSDT", OrderId::OrderID(order_id)).await.unwrap();
+    }
+
+    #[tokio::test]
+    pub async fn test_cancel_all_orders() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+        bybit.cancel_all_orders(Category::Linear, "ETHUSDT").await.unwrap();
     }
 }
