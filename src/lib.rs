@@ -58,6 +58,11 @@ pub struct Bybit {
     pub client: Client
 }
 
+pub enum JsonMethod {
+    Post,
+    Get
+}
+
 impl Bybit {
 
     pub fn new(api_key: Option<String>, api_secret: Option<String>, proxy_url: Option<String>) -> anyhow::Result<Self> {
@@ -95,11 +100,11 @@ impl Bybit {
         self.sign_request(request)
     }
 
-    pub async fn post_signed(&self, endpoint: &str, timestamp: u128, signature: &str, params: Value) -> anyhow::Result<Response> {
+    pub async fn send_request(&self, endpoint: &str, timestamp: u128, signature: &str, params: Value, json_method: JsonMethod) -> anyhow::Result<Response> {
         let api_key = self.api_key.as_ref().ok_or_else(|| anyhow!("Missing api key"))?;
 
         let mut headers = HeaderMap::new();
-        headers.insert("X-BAPI-SIGN", HeaderValue::from_str(signature)?);
+        
         headers.insert("X-BAPI-API-KEY", HeaderValue::from_str(&api_key)?);
         headers.insert("X-BAPI-TIMESTAMP", HeaderValue::from_str(&timestamp.to_string())?);
         headers.insert("X-BAPI-RECV-WINDOW", HeaderValue::from_str(RECV_WINDOW)?);
@@ -107,11 +112,32 @@ impl Bybit {
 
         let url = format!("{REST_API_URL}{endpoint}");
 
-        let resp = self.client
-        .post(url)
-        .headers(headers)
-        .json(&params)
-        .send().await?;
+        let resp = match json_method {
+            JsonMethod::Get => {
+
+                let obj = params.as_object().ok_or_else(|| anyhow!("Expected json object"))?;
+
+                let query_string: Vec<String> = obj.iter().map(|(key, value)| {
+                    format!("{}={}", key, value.as_str().unwrap_or(""))
+                }).collect();
+
+                let request = query_string.join("&");
+                println!("request: {request}");
+                let signature = self.make_signature(timestamp, &request)?;
+
+                headers.insert("X-BAPI-SIGN", HeaderValue::from_str(&signature)?);
+
+                let full_url = format!("{}?{}", url, request);
+                println!("full url: {full_url}");
+
+                self.client.get(full_url).headers(headers).send().await?
+            },
+            JsonMethod::Post => {
+                headers.insert("X-BAPI-SIGN", HeaderValue::from_str(signature)?);
+                self.client.post(url).headers(headers).json(&params).send().await?
+            }
+        };
+
         Ok(resp)
     }
 
@@ -138,7 +164,7 @@ impl Bybit {
         let timestamp = get_timestamp();
 
         let signature = self.make_signature(timestamp, &raw_request_body)?;
-        let resp = self.post_signed(endpoint, timestamp, &signature, params).await?;
+        let resp = self.send_request(endpoint, timestamp, &signature, params, JsonMethod::Post).await?;
         let txt = resp.text().await.unwrap();
         println!("resp: {txt}");
 
@@ -161,7 +187,7 @@ impl Bybit {
         let timestamp = get_timestamp();
 
         let signature = self.make_signature(timestamp, &raw_request_body)?;
-        let resp = self.post_signed(endpoint, timestamp, &signature, params).await?;
+        let resp = self.send_request(endpoint, timestamp, &signature, params, JsonMethod::Post).await?;
         let txt = resp.text().await.unwrap();
 
 
@@ -201,12 +227,49 @@ impl Bybit {
         let timestamp = get_timestamp();
 
         let signature = self.make_signature(timestamp, &raw_request_body)?;
-        let resp = self.post_signed(endpoint, timestamp, &signature, params).await?;
+        let resp = self.send_request(endpoint, timestamp, &signature, params, JsonMethod::Post).await?;
         let txt = resp.text().await.unwrap();
 
 
         // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722030653718}
         println!("resp: {txt}");
+
+        Ok(())
+    }
+
+    pub async fn get_orders(&self, category: Category, symbol: &str, order_id_op: Option<OrderId>) -> anyhow::Result<()> {
+        let endpoint = "/v5/order/realtime";
+
+        let mut params = json!({
+            "category": category,
+            "symbol": symbol,
+        });
+
+        if let Some(order_id) = order_id_op {
+            match order_id {
+                OrderId::OrderID(id) => {
+                    params["orderId"] = json!(id);
+                },
+                OrderId::OrderLinkID(id) => {
+                    params["orderLinkId"] = json!(id);
+                }
+            }
+        }
+
+        let raw_request_body = params.to_string();
+        println!("{raw_request_body}");
+
+        let timestamp = get_timestamp();
+
+        let signature = self.make_signature(timestamp, &raw_request_body)?;
+        let resp = self.send_request(endpoint, timestamp, &signature, params, JsonMethod::Get).await?;
+        let txt = resp.text().await.unwrap();
+        println!("resp: {txt}");
+
+        /*
+        {"retCode":0,"retMsg":"OK","result":{"nextPageCursor":"xxxx","category":"linear","list":[{"symbol":"ETHUSDT","orderType":"Market","orderLinkId":"","slLimitPrice":"0","orderId":"xxxx","cancelType":"UNKNOWN","avgPrice":"3277.01","stopOrderType":"","lastPriceOnCreated":"3277.02","orderStatus":"Filled","createType":"CreateByUser","takeProfit":"","cumExecValue":"32.7701","tpslMode":"","smpType":"None","triggerDirection":0,"blockTradeId":"","isLeverage":"","rejectReason":"EC_NoError","price":"3113.17","orderIv":"","createdTime":"1722034770466","tpTriggerBy":"","positionIdx":0,"timeInForce":"IOC","leavesValue":"0","updatedTime":"1722034770468","side":"Sell","smpGroup":0,"triggerPrice":"","tpLimitPrice":"0","cumExecFee":"0.01802356","leavesQty":"0","slTriggerBy":"","closeOnTrigger":false,"placeType":"","cumExecQty":"0.01","reduceOnly":false,"qty":"0.01","stopLoss":"","marketUnit":"","smpOrderId":"","triggerBy":""}]},"retExtInfo":{},"time":1722034786642}
+        
+         */
 
         Ok(())
     }
@@ -250,5 +313,14 @@ mod tests {
 
         let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
         bybit.create_order(Category::Linear, "ETHUSDT", TradeDirection::Sell, OrderType::Market, 0.01, None, None).await.unwrap();
+    }
+
+    #[tokio::test]
+    pub async fn test_get_orders() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+        let order_id = String::from("xxx");
+        bybit.get_orders(Category::Linear, "ETHUSDT",Some(OrderId::OrderID(order_id))).await.unwrap();
     }
 }
