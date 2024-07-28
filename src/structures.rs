@@ -114,6 +114,71 @@ pub struct Order {
     pub updated_time: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AccountInfo {
+    #[serde(rename = "totalEquity", deserialize_with = "parse_string_to_f64")]
+    pub total_equity: f64,
+    #[serde(rename = "accountIMRate", deserialize_with = "parse_string_to_f64")]
+    pub account_im_rate: f64,
+    #[serde(rename = "totalMarginBalance", deserialize_with = "parse_string_to_f64")]
+    pub total_margin_balance: f64,
+    #[serde(rename = "totalInitialMargin", deserialize_with = "parse_string_to_f64")]
+    pub total_initial_margin: f64,
+    #[serde(rename = "accountType")]
+    pub account_type: String,
+    #[serde(rename = "totalAvailableBalance", deserialize_with = "parse_string_to_f64")]
+    pub total_available_balance: f64,
+    #[serde(rename = "accountMMRate", deserialize_with = "parse_string_to_f64")]
+    pub account_mm_rate: f64,
+    #[serde(rename = "totalPerpUPL", deserialize_with = "parse_string_to_f64")]
+    pub total_perp_upl: f64,
+    #[serde(rename = "totalWalletBalance", deserialize_with = "parse_string_to_f64")]
+    pub total_wallet_balance: f64,
+    #[serde(rename = "accountLTV", deserialize_with = "parse_string_to_f64")]
+    pub account_ltv: f64,
+    #[serde(rename = "totalMaintenanceMargin", deserialize_with = "parse_string_to_f64")]
+    pub total_maintenance_margin: f64,
+    pub coin: Vec<CoinInfo>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CoinInfo {
+    #[serde(rename = "availableToBorrow")]
+    pub available_to_borrow: String,
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub bonus: f64,
+    #[serde(rename = "accruedInterest", deserialize_with = "parse_string_to_f64")]
+    pub accrued_interest: f64,
+    #[serde(rename = "availableToWithdraw", deserialize_with = "parse_string_to_f64")]
+    pub available_to_withdraw: f64,
+    #[serde(rename = "totalOrderIM", deserialize_with = "parse_string_to_f64")]
+    pub total_order_im: f64,
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub equity: f64,
+    #[serde(rename = "totalPositionMM", deserialize_with = "parse_string_to_f64")]
+    pub total_position_mm: f64,
+    #[serde(rename = "usdValue", deserialize_with = "parse_string_to_f64")]
+    pub usd_value: f64,
+    #[serde(rename = "unrealisedPnl", deserialize_with = "parse_string_to_f64")]
+    pub unrealised_pnl: f64,
+    #[serde(rename = "collateralSwitch")]
+    pub collateral_switch: bool,
+    #[serde(rename = "spotHedgingQty", deserialize_with = "parse_string_to_f64")]
+    pub spot_hedging_qty: f64,
+    #[serde(rename = "borrowAmount")]
+    pub borrow_amount: String,
+    #[serde(rename = "totalPositionIM", deserialize_with = "parse_string_to_f64")]
+    pub total_position_im: f64,
+    #[serde(rename = "walletBalance", deserialize_with = "parse_string_to_f64")]
+    pub wallet_balance: f64,
+    #[serde(rename = "cumRealisedPnl", deserialize_with = "parse_string_to_f64")]
+    pub cum_realised_pnl: f64,
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub locked: f64,
+    #[serde(rename = "marginCollateral")]
+    pub margin_collateral: bool,
+    pub coin: String,
+}
 
 
 #[cfg(test)]

@@ -2,7 +2,7 @@ pub mod utils;
 pub mod structures;
 
 use anyhow::bail;
-use anyhow::{anyhow, ensure};
+use anyhow::{anyhow, ensure, Context};
 use serde::{Serialize, Deserialize};
 use hmac::{Hmac, Mac};
 use serde_json::{json, Value};
@@ -55,6 +55,12 @@ pub enum OrderId {
     OrderLinkID(String)
 }
 
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum AccountType {
+    UNIFIED
+}
+
 pub struct Bybit {
     pub api_key: Option<String>,
     pub api_secret: Option<String>,
@@ -86,7 +92,7 @@ impl Bybit {
         let mut signed_key = Hmac::<Sha256>::new_from_slice(secret_key.as_bytes())?;
         signed_key.update(request.as_bytes());
         let signature = hex::encode(signed_key.finalize().into_bytes());
-        println!("signature: {signature}");
+        //println!("signature: {signature}");
         Ok(signature)
     }
 
@@ -94,7 +100,7 @@ impl Bybit {
         let ts = timestamp.to_string();
         let api_key = self.api_key.as_ref().ok_or_else(|| anyhow!("Missing api key"))?;
         let request = format!("{ts}{api_key}{RECV_WINDOW}{raw_request_body}");
-        println!("request to sign: {request}");
+        //println!("request to sign: {request}");
         self.sign_request(request)
     }
 
@@ -134,13 +140,13 @@ impl Bybit {
         }).collect();
 
         let request = query_string.join("&");
-        println!("request: {request}");
+        //println!("request: {request}");
         let signature = self.make_signature(timestamp, &request)?;
 
         headers.insert("X-BAPI-SIGN", HeaderValue::from_str(&signature)?);
 
         let full_url = format!("{}?{}", url, request);
-        println!("full url: {full_url}");
+        //println!("full url: {full_url}");
 
         let resp = self.client.get(full_url).headers(headers).send().await?;
 
@@ -165,14 +171,14 @@ impl Bybit {
         }
 
         let raw_request_body = params.to_string();
-        println!("{raw_request_body}");
+        //println!("{raw_request_body}");
 
         let timestamp = get_timestamp();
 
         let signature = self.make_signature(timestamp, &raw_request_body)?;
         let resp = self.post_request(endpoint, timestamp, &signature, params).await?;
         let txt = resp.text().await?;
-        println!("resp: {txt}");
+        //println!("resp: {txt}");
 
         // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxxxx","orderLinkId":""},"retExtInfo":{},"time":1722029558512}
 
@@ -194,7 +200,7 @@ impl Bybit {
         });
 
         let raw_request_body = params.to_string();
-        println!("{raw_request_body}");
+        //println!("{raw_request_body}");
 
         let timestamp = get_timestamp();
 
@@ -204,7 +210,7 @@ impl Bybit {
 
 
         // {"retCode":0,"retMsg":"OK","result":{"list":[{"orderId":"xxxxx","orderLinkId":""}],"success":"1"},"retExtInfo":{},"time":1722029752786}
-        println!("resp: {txt}");
+        //println!("resp: {txt}");
 
         let resp: BybitResponse = serde_json::from_str(&txt)?;
 
@@ -240,7 +246,7 @@ impl Bybit {
         }
 
         let raw_request_body = params.to_string();
-        println!("{raw_request_body}");
+        //println!("{raw_request_body}");
 
         let timestamp = get_timestamp();
 
@@ -250,7 +256,7 @@ impl Bybit {
 
 
         // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722030653718}
-        println!("resp: {txt}");
+        //println!("resp: {txt}");
 
         let resp: BybitResponse = serde_json::from_str(&txt)?;
 
@@ -284,7 +290,7 @@ impl Bybit {
 
         let resp = self.get_request(endpoint, params).await?;
         let txt = resp.text().await?;
-        println!("resp: {txt}");
+        //println!("resp: {txt}");
 
         let resp: BybitResponse = serde_json::from_str(&txt)?;
 
@@ -295,7 +301,7 @@ impl Bybit {
         let list = resp.result.get("list").ok_or_else(|| anyhow!("No list field"))?;
         let order_list = list.as_array().ok_or_else(|| anyhow!("No order list"))?;
 
-        dbg!(&order_list);
+        //dbg!(&order_list);
 
         let mut orders = vec![];
 
@@ -305,6 +311,41 @@ impl Bybit {
         }
 
         Ok(orders)
+    }
+
+    pub async fn get_wallet_balance(&self, account_type: AccountType,symbol_op: Option<&str>) -> anyhow::Result<AccountInfo> {
+
+        let endpoint = "/v5/account/wallet-balance";
+
+        let mut params = json!({
+            "accountType": account_type,
+        });
+
+        if let Some(symbol) = symbol_op {
+            params["symbol"] = json!(symbol);
+        }
+
+        let resp = self.get_request(endpoint, params).await?;
+        let txt = resp.text().await?;
+        //println!("resp: {txt}");
+
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
+
+        //dbg!(&resp.result);
+
+        let account_obj = resp.result
+        .get("list")
+        .and_then(Value::as_array)
+        .and_then(|arr| arr.first())
+        .context("Failed to extract account info from response")?;
+
+        let account_info: AccountInfo = serde_json::from_value(account_obj.clone())?;
+
+        Ok(account_info)
     }
 }
 
@@ -362,5 +403,15 @@ mod tests {
         let order_id = String::from("d3075c7f-0cae-4bc0-9ace-e9b5d9055326");
         let orders = bybit.get_orders(Category::Linear, "ETHUSDT",Some(OrderId::OrderID(order_id))).await.unwrap();
         dbg!(orders);
+    }
+
+    #[tokio::test]
+    pub async fn test_get_wallet_balance() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+
+        let balance = bybit.get_wallet_balance(AccountType::UNIFIED, None).await.unwrap();
+        dbg!(balance);
     }
 }
