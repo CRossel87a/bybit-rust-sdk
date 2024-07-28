@@ -1,11 +1,28 @@
 use serde::Deserialize;
+use serde_json::Value;
 use crate::utils::parse_string_to_f64;
 use crate::{OrderType, TradeDirection};
 
 
-#[derive(Debug)]
+// {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722030653718}
+
+#[derive(Deserialize, Debug)]
+pub struct BybitResponse {
+    #[serde(rename = "retCode")]
+    pub ret_code: u64,
+    #[serde(rename = "retMsg")]
+    pub ret_msg: String,
+    pub result: Value,
+    #[serde(rename = "retExtInfo")]
+    pub ret_ext_info: Value,
+    pub time: u128
+}
+
+#[derive(Deserialize, Debug)]
 pub struct CreateOrderResponse {
+    #[serde(rename = "orderId")]
     pub order_id: String,
+    #[serde(rename = "orderLinkId")]
     pub order_link_id: String
 }
 
@@ -102,15 +119,21 @@ pub struct Order {
 #[cfg(test)]
 mod tests {
 
-    use serde_json::Value;
-
-    use super::*;
+    use crate::{BybitResponse, CreateOrderResponse};
 
     #[test]
-    pub fn test_decode_order_receipt() {
+    pub fn test_response_decoding() {
         let json = r#"{"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722030653718}"#;
 
-        let resp: Value = serde_json::from_str(&json).unwrap();
+        let resp: BybitResponse = serde_json::from_str(&json).unwrap();
+        dbg!(&resp);
+
+        let order_query: CreateOrderResponse = serde_json::from_value(resp.result).unwrap();
+        dbg!(order_query);
+
+        let json2 = r#"{"retCode":10010,"retMsg":"Unmatched IP, please check your API key's bound IP addresses.","result":{},"retExtInfo":{},"time":1722154324869}"#;
+
+        let resp: BybitResponse = serde_json::from_str(&json2).unwrap();
         dbg!(&resp);
     }
 

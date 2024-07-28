@@ -1,6 +1,7 @@
 pub mod utils;
 pub mod structures;
 
+use anyhow::bail;
 use anyhow::{anyhow, ensure};
 use serde::{Serialize, Deserialize};
 use hmac::{Hmac, Mac};
@@ -8,7 +9,7 @@ use serde_json::{json, Value};
 use sha2::Sha256;
 
 use reqwest::Client;
-use reqwest::{StatusCode, Response};
+use reqwest::Response;
 use reqwest::header::{HeaderMap, HeaderValue};
 use utils::get_timestamp;
 use structures::*;
@@ -58,11 +59,6 @@ pub struct Bybit {
     pub api_key: Option<String>,
     pub api_secret: Option<String>,
     pub client: Client
-}
-
-pub enum JsonMethod {
-    Post,
-    Get
 }
 
 impl Bybit {
@@ -180,13 +176,19 @@ impl Bybit {
 
         // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxxxx","orderLinkId":""},"retExtInfo":{},"time":1722029558512}
 
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
+
         Ok(())
     }
 
     pub async fn cancel_all_orders(&self, category: Category, symbol: &str) -> anyhow::Result<()> {
         let endpoint = "/v5/order/cancel-all";
 
-        let mut params = json!({
+        let params = json!({
             "category": category,
             "symbol": symbol,
         });
@@ -203,6 +205,12 @@ impl Bybit {
 
         // {"retCode":0,"retMsg":"OK","result":{"list":[{"orderId":"xxxxx","orderLinkId":""}],"success":"1"},"retExtInfo":{},"time":1722029752786}
         println!("resp: {txt}");
+
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
 
         Ok(())
     }
@@ -244,15 +252,15 @@ impl Bybit {
         // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722030653718}
         println!("resp: {txt}");
 
-        let obj: Value = serde_json::from_str(&txt)?;
-        let result = obj.get("result").ok_or_else(|| anyhow!("No result field"))?;
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
 
-        let ids = CreateOrderResponse {
-            order_id: result.get("orderId").ok_or_else(|| anyhow!("No order id field"))?.as_str().ok_or_else(|| anyhow!("as_str err on orderid"))?.to_string(),
-            order_link_id: result.get("orderLinkId").ok_or_else(|| anyhow!("No order link id field"))?.as_str().ok_or_else(|| anyhow!("as_str err on order link id"))?.to_string(),
-        };
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
 
-        Ok(ids)
+        let order_query: CreateOrderResponse = serde_json::from_value(resp.result)?;
+
+       Ok(order_query)
     }
 
     pub async fn get_orders(&self, category: Category, symbol: &str, order_id_op: Option<OrderId>) -> anyhow::Result<Vec<Order>> {
@@ -278,9 +286,13 @@ impl Bybit {
         let txt = resp.text().await?;
         println!("resp: {txt}");
 
-        let obj: Value = serde_json::from_str(&txt)?;
-        let result = obj.get("result").ok_or_else(|| anyhow!("No result field"))?;
-        let list = result.get("list").ok_or_else(|| anyhow!("No list field"))?;
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
+
+        let list = resp.result.get("list").ok_or_else(|| anyhow!("No list field"))?;
         let order_list = list.as_array().ok_or_else(|| anyhow!("No order list"))?;
 
         dbg!(&order_list);
@@ -299,8 +311,9 @@ impl Bybit {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use utils::unlock_keys;
-    use serde_json::json;
     use super::*;
 
     #[tokio::test]
@@ -324,7 +337,9 @@ mod tests {
     pub async fn test_create_limit_order() {
         let (api_key, api_secret) = unlock_keys().unwrap();
 
-        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+        let proxy_url = env::var("proxy_url").ok();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), proxy_url).unwrap();
         let resp = bybit.create_order(Category::Linear, "ETHUSDT", TradeDirection::Buy, OrderType::Limit, 0.1, Some(3000.21), Some(TimeInForce::GTC)).await.unwrap();
         dbg!(resp);
     }
