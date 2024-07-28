@@ -1,6 +1,8 @@
 pub mod utils;
 pub mod structures;
 
+use std::collections::HashMap;
+
 use anyhow::bail;
 use anyhow::{anyhow, ensure, Context};
 use serde::{Serialize, Deserialize};
@@ -347,6 +349,45 @@ impl Bybit {
 
         Ok(account_info)
     }
+
+    pub async fn get_instrument_info(&self, category: Category,symbol_op: Option<&str>) -> anyhow::Result<HashMap<String, ContractInfo>> {
+
+        let endpoint = "/v5/market/instruments-info";
+
+        let mut params = json!({
+            "category": category,
+        });
+
+        if let Some(symbol) = symbol_op {
+            params["symbol"] = json!(symbol);
+        }
+
+        let resp = self.get_request(endpoint, params).await?;
+        let txt = resp.text().await?;
+        println!("resp: {txt}");
+
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
+
+        //dbg!(&resp.result);
+
+        let contract_list = resp.result
+        .get("list")
+        .and_then(Value::as_array)
+        .context("Failed to extract contract list from response")?;
+
+        let mut map: HashMap<String, ContractInfo> = HashMap::default();
+
+        for contract in contract_list.iter() {
+            let info: ContractInfo = serde_json::from_value(contract.clone())?;
+            map.insert(info.symbol.clone(), info);
+        }
+
+        Ok(map)
+    }
 }
 
 
@@ -413,5 +454,15 @@ mod tests {
 
         let balance = bybit.get_wallet_balance(AccountType::UNIFIED, None).await.unwrap();
         dbg!(balance);
+    }
+
+    #[tokio::test]
+    pub async fn test_get_instrument_info() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+
+        let map = bybit.get_instrument_info(Category::Linear, None).await.unwrap();
+        dbg!(map);
     }
 }

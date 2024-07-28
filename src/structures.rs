@@ -180,6 +180,95 @@ pub struct CoinInfo {
     pub coin: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ContractInfo {
+    pub symbol: String,
+    #[serde(rename = "contractType")]
+    pub contract_type: String,
+    pub status: String,
+    #[serde(rename = "baseCoin")]
+    pub base_coin: String,
+    #[serde(rename = "quoteCoin")]
+    pub quote_coin: String,
+    #[serde(rename = "launchTime")]
+    pub launch_time: String,
+    #[serde(rename = "deliveryTime")]
+    pub delivery_time: String,
+    #[serde(rename = "deliveryFeeRate")]
+    pub delivery_fee_rate: String,
+    #[serde(rename = "priceScale")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub price_scale: f64,
+    #[serde(rename = "leverageFilter")]
+    pub leverage_filter: LeverageFilter,
+    #[serde(rename = "priceFilter")]
+    pub price_filter: PriceFilter,
+    #[serde(rename = "lotSizeFilter")]
+    pub lot_size_filter: LotSizeFilter,
+    #[serde(rename = "unifiedMarginTrade")]
+    pub unified_margin_trade: bool,
+    #[serde(rename = "fundingInterval")]
+    pub funding_interval: i32,
+    #[serde(rename = "settleCoin")]
+    pub settle_coin: String,
+    #[serde(rename = "copyTrading")]
+    pub copy_trading: String,
+    #[serde(rename = "upperFundingRate")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub upper_funding_rate: f64,
+    #[serde(rename = "lowerFundingRate")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub lower_funding_rate: f64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LeverageFilter {
+    #[serde(rename = "minLeverage")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub min_leverage: f64,
+    #[serde(rename = "maxLeverage")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub max_leverage: f64,
+    #[serde(rename = "leverageStep")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub leverage_step: f64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PriceFilter {
+    #[serde(rename = "minPrice")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub min_price: f64,
+    #[serde(rename = "maxPrice")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub max_price: f64,
+    #[serde(rename = "tickSize")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub tick_size: f64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LotSizeFilter {
+    #[serde(rename = "maxOrderQty")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub max_order_qty: f64,
+    #[serde(rename = "minOrderQty")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub min_order_qty: f64,
+    #[serde(rename = "qtyStep")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub qty_step: f64,
+    #[serde(rename = "postOnlyMaxOrderQty")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub post_only_max_order_qty: f64,
+    #[serde(rename = "maxMktOrderQty")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub max_mkt_order_qty: f64,
+    #[serde(rename = "minNotionalValue")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub min_notional_value: f64,
+}
+
 
 #[cfg(test)]
 mod tests {
