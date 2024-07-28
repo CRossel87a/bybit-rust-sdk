@@ -388,6 +388,41 @@ impl Bybit {
 
         Ok(map)
     }
+
+    pub async fn get_position_info(&self, category: Category,settle_coin: &str) -> anyhow::Result<HashMap<String, PositionInfo>> {
+
+        let endpoint = "/v5/position/list";
+
+        let params = json!({
+            "category": category,
+            "settleCoin": settle_coin
+        });
+
+
+        let resp = self.get_request(endpoint, params).await?;
+        let txt = resp.text().await?;
+        println!("resp: {txt}");
+
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
+
+        let position_list = resp.result
+        .get("list")
+        .and_then(Value::as_array)
+        .context("Failed to extract osition list from response")?;
+
+        let mut map: HashMap<String, PositionInfo> = HashMap::default();
+
+        for position in position_list.iter() {
+            let info: PositionInfo = serde_json::from_value(position.clone())?;
+            map.insert(info.symbol.clone(), info);
+        }
+
+        Ok(map)
+    }
 }
 
 
@@ -463,6 +498,16 @@ mod tests {
         let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
 
         let map = bybit.get_instrument_info(Category::Linear, None).await.unwrap();
+        dbg!(map);
+    }
+
+    #[tokio::test]
+    pub async fn test_get_position_info() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+
+        let map = bybit.get_position_info(Category::Linear, "USDT").await.unwrap();
         dbg!(map);
     }
 }

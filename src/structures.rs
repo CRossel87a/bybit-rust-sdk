@@ -269,6 +269,86 @@ pub struct LotSizeFilter {
     pub min_notional_value: f64,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct PositionInfo {
+    #[serde(rename = "adlRankIndicator")]
+    pub adl_rank_indicator: i32,
+    #[serde(rename = "autoAddMargin")]
+    pub auto_add_margin: i32,
+    #[serde(rename = "avgPrice")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub avg_price: f64,
+    #[serde(rename = "bustPrice")]
+    pub bust_price: String,
+    #[serde(rename = "createdTime")]
+    pub created_time: String,
+    #[serde(rename = "cumRealisedPnl")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub cum_realised_pnl: f64,
+    #[serde(rename = "curRealisedPnl")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub cur_realised_pnl: f64,
+    #[serde(rename = "isReduceOnly")]
+    pub is_reduce_only: bool,
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub leverage: f64,
+    #[serde(rename = "leverageSysUpdatedTime")]
+    pub leverage_sys_updated_time: String,
+    
+    //#[serde(rename = "liqPrice")]
+    //#[serde(deserialize_with = "parse_string_to_f64")]
+    //pub liq_price: f64,
+    
+    #[serde(rename = "markPrice")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub mark_price: f64,
+    #[serde(rename = "mmrSysUpdatedTime")]
+    pub mmr_sys_updated_time: String,
+    #[serde(rename = "positionBalance")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub position_balance: f64,
+    #[serde(rename = "positionIM")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub position_im: f64,
+    #[serde(rename = "positionIdx")]
+    pub position_idx: i32,
+    #[serde(rename = "positionMM")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub position_mm: f64,
+    #[serde(rename = "positionStatus")]
+    pub position_status: String,
+    #[serde(rename = "positionValue")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub position_value: f64,
+    #[serde(rename = "riskId")]
+    pub risk_id: i32,
+    #[serde(rename = "riskLimitValue")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub risk_limit_value: f64,
+    pub seq: i64,
+    #[serde(rename = "sessionAvgPrice")]
+    pub session_avg_price: String,
+    pub side: String,
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub size: f64,
+    #[serde(rename = "stopLoss")]
+    pub stop_loss: String,
+    pub symbol: String,
+    #[serde(rename = "takeProfit")]
+    pub take_profit: String,
+    #[serde(rename = "tpslMode")]
+    pub tpsl_mode: String,
+    #[serde(rename = "tradeMode")]
+    pub trade_mode: i32,
+    #[serde(rename = "trailingStop")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub trailing_stop: f64,
+    #[serde(rename = "unrealisedPnl")]
+    #[serde(deserialize_with = "parse_string_to_f64")]
+    pub unrealised_pnl: f64,
+    #[serde(rename = "updatedTime")]
+    pub updated_time: String,
+}
 
 #[cfg(test)]
 mod tests {
