@@ -2,7 +2,7 @@ pub mod utils;
 pub mod structures;
 
 use std::collections::HashMap;
-
+use std::fmt;
 use anyhow::bail;
 use anyhow::{anyhow, ensure, Context};
 use serde::{Serialize, Deserialize};
@@ -37,10 +37,28 @@ pub enum TradeDirection {
     Sell
 }
 
+impl fmt::Display for TradeDirection {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TradeDirection::Buy => write!(f, "Buy"),
+            TradeDirection::Sell => write!(f, "Sell"),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub enum OrderType {
     Market,
     Limit
+}
+
+impl fmt::Display for OrderType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            OrderType::Market => write!(f, "Market"),
+            OrderType::Limit => write!(f, "Limit"),
+        }
+    }
 }
 
 // https://bybit-exchange.github.io/docs/v5/enum#timeinforce
