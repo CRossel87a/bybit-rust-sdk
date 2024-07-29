@@ -350,6 +350,62 @@ pub struct PositionInfo {
     pub updated_time: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct TickerData {
+    #[serde(rename = "ask1Price", deserialize_with = "parse_string_to_f64")]
+    pub ask1_price: f64,
+    #[serde(rename = "ask1Size", deserialize_with = "parse_string_to_f64")]
+    pub ask1_size: f64,
+    pub basis: String,
+    #[serde(rename = "basisRate")]
+    pub basis_rate: String,
+    #[serde(rename = "bid1Price", deserialize_with = "parse_string_to_f64")]
+    pub bid1_price: f64,
+    #[serde(rename = "bid1Size", deserialize_with = "parse_string_to_f64")]
+    pub bid1_size: f64,
+    #[serde(rename = "curPreListingPhase")]
+    pub cur_pre_listing_phase: String,
+    #[serde(rename = "deliveryFeeRate")]
+    pub delivery_fee_rate: String,
+    #[serde(rename = "deliveryTime", deserialize_with = "parse_string_to_f64")]
+    pub delivery_time: f64,
+    #[serde(rename = "fundingRate", deserialize_with = "parse_string_to_f64")]
+    pub funding_rate: f64,
+    #[serde(rename = "highPrice24h", deserialize_with = "parse_string_to_f64")]
+    pub high_price_24h: f64,
+    #[serde(rename = "indexPrice", deserialize_with = "parse_string_to_f64")]
+    pub index_price: f64,
+    #[serde(rename = "lastPrice", deserialize_with = "parse_string_to_f64")]
+    pub last_price: f64,
+    #[serde(rename = "lowPrice24h", deserialize_with = "parse_string_to_f64")]
+    pub low_price_24h: f64,
+    #[serde(rename = "markPrice", deserialize_with = "parse_string_to_f64")]
+    pub mark_price: f64,
+    #[serde(rename = "nextFundingTime", deserialize_with = "parse_string_to_f64")]
+    pub next_funding_time: f64,
+    #[serde(rename = "openInterest", deserialize_with = "parse_string_to_f64")]
+    pub open_interest: f64,
+    #[serde(rename = "openInterestValue", deserialize_with = "parse_string_to_f64")]
+    pub open_interest_value: f64,
+    #[serde(rename = "preOpenPrice")]
+    pub pre_open_price: String,
+    #[serde(rename = "preQty")]
+    pub pre_qty: String,
+    #[serde(rename = "predictedDeliveryPrice")]
+    pub predicted_delivery_price: String,
+    #[serde(rename = "prevPrice1h", deserialize_with = "parse_string_to_f64")]
+    pub prev_price_1h: f64,
+    #[serde(rename = "prevPrice24h", deserialize_with = "parse_string_to_f64")]
+    pub prev_price_24h: f64,
+    #[serde(rename = "price24hPcnt", deserialize_with = "parse_string_to_f64")]
+    pub price_24h_pcnt: f64,
+    pub symbol: String,
+    #[serde(rename = "turnover24h", deserialize_with = "parse_string_to_f64")]
+    pub turnover_24h: f64,
+    #[serde(rename = "volume24h", deserialize_with = "parse_string_to_f64")]
+    pub volume_24h: f64,
+}
+
 #[cfg(test)]
 mod tests {
 
