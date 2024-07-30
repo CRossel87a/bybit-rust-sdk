@@ -458,7 +458,7 @@ impl Bybit {
 
         let resp = self.get_request(endpoint, params).await?;
         let txt = resp.text().await?;
-        println!("resp: {txt}");
+        //println!("resp: {txt}");
 
         let resp: BybitResponse = serde_json::from_str(&txt)?;
 
