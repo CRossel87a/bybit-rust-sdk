@@ -554,7 +554,7 @@ mod tests {
 
         let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
 
-        let map = bybit.get_instrument_info(Category::Linear, Some("1000PEPEUSDT")).await.unwrap();
+        let map = bybit.get_instrument_info(Category::Linear, Some("ETHUSDT")).await.unwrap();
         dbg!(map);
     }
 
