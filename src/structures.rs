@@ -1,7 +1,8 @@
+use anyhow::ensure;
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 use crate::utils::parse_string_to_f64;
-use crate::{OrderType, TradeDirection};
+use crate::{OrderType, TimeInForce, TradeDirection};
 
 
 // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722030653718}
@@ -24,6 +25,20 @@ pub struct CreateOrderResponse {
     pub order_id: String,
     #[serde(rename = "orderLinkId")]
     pub order_link_id: String
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CreateBatchOrderResponse {
+    pub list: Vec<CreateBatchOrderItemResponse>
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CreateBatchOrderItemResponse {
+    #[serde(rename = "orderId")]
+    pub order_id: String,
+    #[serde(rename = "orderLinkId")]
+    pub order_link_id: String,
+    pub symbol: String
 }
 
 #[derive(Deserialize, Debug)]
@@ -405,6 +420,41 @@ pub struct TickerData {
     pub turnover_24h: f64,
     #[serde(rename = "volume24h", deserialize_with = "parse_string_to_f64")]
     pub volume_24h: f64,
+}
+
+pub struct NewOrder {
+    pub symbol: String,
+    pub side: TradeDirection,
+    pub qty: f64,
+    pub order_type: OrderType,
+    pub price: Option<f64>,
+    pub time_in_force: Option<TimeInForce>
+}
+
+impl NewOrder {
+    pub fn into_json(&self) -> anyhow::Result<serde_json::Value> {
+
+        if self.order_type.eq(&OrderType::Limit) {
+            ensure!(self.price.is_some(), "create_order() missing price");
+        }
+
+        let mut params = json!({
+            "symbol": self.symbol,
+            "side": self.side,
+            "qty": self.qty.to_string(),
+            "orderType": self.order_type,
+        });
+
+        if let Some(p) = self.price {
+            params["price"] = json!(p.to_string());
+        }
+
+        if let Some(tip) = self.time_in_force {
+            params["timeInForce"] = json!(tip);
+        }
+
+        Ok(params)
+    }
 }
 
 #[cfg(test)]

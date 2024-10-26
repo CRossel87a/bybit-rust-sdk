@@ -62,7 +62,7 @@ impl fmt::Display for OrderType {
 }
 
 // https://bybit-exchange.github.io/docs/v5/enum#timeinforce
-#[derive(Serialize)]
+#[derive(Serialize, Clone, Copy)]
 pub enum TimeInForce {
     PostOnly,
     GTC,
@@ -287,6 +287,48 @@ impl Bybit {
         let order_query: CreateOrderResponse = serde_json::from_value(resp.result)?;
 
        Ok(order_query)
+    }
+
+    pub async fn batch_create_order(&self, category: Category, new_orders: Vec<NewOrder>) -> anyhow::Result<CreateBatchOrderResponse> {
+
+        let endpoint = "/v5/order/create-batch";
+
+        ensure!(!new_orders.is_empty(), "new_orders is empty");
+
+        let mut orders: Vec<serde_json::Value> = vec![];
+
+        for order in new_orders.into_iter() {
+            let json = order.into_json()?;
+            orders.push(json);
+        }
+
+        let params = json!({
+            "category": category,
+            "request": orders
+        });
+
+        let raw_request_body = params.to_string();
+        //println!("{raw_request_body}");
+
+        let timestamp = get_timestamp();
+
+        let signature = self.make_signature(timestamp, &raw_request_body)?;
+        let resp = self.post_request(endpoint, timestamp, &signature, params).await?;
+        let txt = resp.text().await?;
+
+
+        // {"retCode":0,"retMsg":"OK","result":{"orderId":"xxxx","orderLinkId":""},"retExtInfo":{},"time":1722030653718}
+        //println!("resp: {txt}");
+
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
+
+        let order_receipts: CreateBatchOrderResponse = serde_json::from_value(resp.result)?;
+
+       Ok(order_receipts)
     }
 
     pub async fn get_orders(&self, category: Category, symbol: &str, order_id_op: Option<OrderId>) -> anyhow::Result<Vec<Order>> {
@@ -527,6 +569,36 @@ mod tests {
     }
 
     #[tokio::test]
+    pub async fn test_create_batch_market_orders() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+
+        let mut new_orders = vec![];
+
+        new_orders.push(NewOrder {
+            symbol: String::from("BLASTUSDT"),
+            side: TradeDirection::Buy,
+            order_type: OrderType::Market,
+            price: None,
+            qty: 1000.0,
+            time_in_force: None
+        });
+
+        new_orders.push(NewOrder {
+            symbol: String::from("BLASTUSDT"),
+            side: TradeDirection::Buy,
+            order_type: OrderType::Market,
+            price: None,
+            qty: 1200.0,
+            time_in_force: None
+        });
+
+        let receipts = bybit.batch_create_order(Category::Linear,new_orders).await.unwrap();
+        dbg!(receipts);
+    }
+
+    #[tokio::test]
     pub async fn test_get_orders() {
         let (api_key, api_secret) = unlock_keys().unwrap();
 
@@ -564,7 +636,7 @@ mod tests {
 
         let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
 
-        let map = bybit.get_tickers(Category::Linear, Some("ETHUSDT")).await.unwrap();
+        let map = bybit.get_tickers(Category::Linear, Some("DEGENUSDT")).await.unwrap();
         dbg!(map);
     }
 
