@@ -422,6 +422,29 @@ pub struct TickerData {
     pub volume_24h: f64,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SpotTickerData {
+    #[serde(rename = "ask1Price", deserialize_with = "parse_string_to_f64")]
+    pub ask1_price: f64,
+    #[serde(rename = "ask1Size", deserialize_with = "parse_string_to_f64")]
+    pub ask1_size: f64,
+    #[serde(rename = "bid1Price", deserialize_with = "parse_string_to_f64")]
+    pub bid1_price: f64,
+    #[serde(rename = "bid1Size", deserialize_with = "parse_string_to_f64")]
+    pub bid1_size: f64,
+    #[serde(rename = "highPrice24h", deserialize_with = "parse_string_to_f64")]
+    pub high_price_24h: f64,
+    #[serde(rename = "lastPrice", deserialize_with = "parse_string_to_f64")]
+    pub last_price: f64,
+    #[serde(rename = "lowPrice24h", deserialize_with = "parse_string_to_f64")]
+    pub low_price_24h: f64,
+    pub symbol: String,
+    #[serde(rename = "turnover24h", deserialize_with = "parse_string_to_f64")]
+    pub turnover_24h: f64,
+    #[serde(rename = "volume24h", deserialize_with = "parse_string_to_f64")]
+    pub volume_24h: f64,
+}
+
 pub struct NewOrder {
     pub symbol: String,
     pub side: TradeDirection,

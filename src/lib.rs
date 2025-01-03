@@ -449,12 +449,12 @@ impl Bybit {
         Ok(map)
     }
 
-    pub async fn get_tickers(&self, category: Category,symbol_op: Option<&str>) -> anyhow::Result<HashMap<String, TickerData>> {
+    pub async fn get_futures_tickers(&self, symbol_op: Option<&str>) -> anyhow::Result<HashMap<String, TickerData>> {
 
         let endpoint = "/v5/market/tickers";
 
         let mut params = json!({
-            "category": category,
+            "category": Category::Linear,
         });
 
         if let Some(symbol) = symbol_op {
@@ -482,6 +482,45 @@ impl Bybit {
 
         for contract in contract_list.iter() {
             let info: TickerData = serde_json::from_value(contract.clone())?;
+            map.insert(info.symbol.clone(), info);
+        }
+
+        Ok(map)
+    }
+
+    pub async fn get_spot_tickers(&self, symbol_op: Option<&str>) -> anyhow::Result<HashMap<String, SpotTickerData>> {
+
+        let endpoint = "/v5/market/tickers";
+
+        let mut params = json!({
+            "category": Category::Spot,
+        });
+
+        if let Some(symbol) = symbol_op {
+            params["symbol"] = json!(symbol);
+        }
+
+        let resp = self.get_request(endpoint, params).await?;
+        let txt = resp.text().await?;
+        //println!("resp: {txt}");
+
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
+
+        //dbg!(&resp.result);
+
+        let contract_list = resp.result
+        .get("list")
+        .and_then(Value::as_array)
+        .context("Failed to extract contract list from response")?;
+
+        let mut map: HashMap<String, SpotTickerData> = HashMap::default();
+
+        for contract in contract_list.iter() {
+            let info: SpotTickerData = serde_json::from_value(contract.clone())?;
             map.insert(info.symbol.clone(), info);
         }
 
@@ -631,12 +670,22 @@ mod tests {
     }
 
     #[tokio::test]
-    pub async fn test_get_tickers() {
+    pub async fn test_get_futures_tickers() {
         let (api_key, api_secret) = unlock_keys().unwrap();
 
         let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
 
-        let map = bybit.get_tickers(Category::Linear, Some("DEGENUSDT")).await.unwrap();
+        let map = bybit.get_futures_tickers(Some("DEGENUSDT")).await.unwrap();
+        dbg!(map);
+    }
+
+    #[tokio::test]
+    pub async fn test_get_spot_ickers() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+
+        let map = bybit.get_spot_tickers(Some("USDEUSDT")).await.unwrap();
         dbg!(map);
     }
 
