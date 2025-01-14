@@ -165,8 +165,8 @@ pub struct CoinInfo {
     //#[serde(rename = "accruedInterest", deserialize_with = "parse_string_to_f64")]
     #[serde(rename = "accruedInterest")]
     pub accrued_interest: String,
-    #[serde(rename = "availableToWithdraw", deserialize_with = "parse_string_to_f64")]
-    pub available_to_withdraw: f64,
+    #[serde(rename = "availableToWithdraw")]
+    pub available_to_withdraw: String,
     #[serde(rename = "totalOrderIM", deserialize_with = "parse_string_to_f64")]
     pub total_order_im: f64,
     #[serde(deserialize_with = "parse_string_to_f64")]
