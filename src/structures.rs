@@ -1,7 +1,7 @@
 use anyhow::ensure;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use crate::utils::parse_string_to_f64;
+use crate::utils::{parse_string_to_f64, parse_string_to_option_f64};
 use crate::{OrderType, TimeInForce, TradeDirection};
 
 
@@ -299,30 +299,28 @@ pub struct PositionInfo {
     #[serde(rename = "createdTime")]
     pub created_time: String,
     #[serde(rename = "cumRealisedPnl")]
-    #[serde(deserialize_with = "parse_string_to_f64")]
-    pub cum_realised_pnl: f64,
+    #[serde(deserialize_with = "parse_string_to_option_f64")]
+    pub cum_realised_pnl: Option<f64>,
     #[serde(rename = "curRealisedPnl")]
     #[serde(deserialize_with = "parse_string_to_f64")]
     pub cur_realised_pnl: f64,
     #[serde(rename = "isReduceOnly")]
     pub is_reduce_only: bool,
-    #[serde(deserialize_with = "parse_string_to_f64")]
-    pub leverage: f64,
+    #[serde(deserialize_with = "parse_string_to_option_f64")]
+    pub leverage: Option<f64>,
     #[serde(rename = "leverageSysUpdatedTime")]
     pub leverage_sys_updated_time: String,
-    
-    //#[serde(rename = "liqPrice")]
-    //#[serde(deserialize_with = "parse_string_to_f64")]
-    //pub liq_price: f64,
-    
+    #[serde(rename = "liqPrice")]
+    #[serde(deserialize_with = "parse_string_to_option_f64")]
+    pub liq_price: Option<f64>,
     #[serde(rename = "markPrice")]
     #[serde(deserialize_with = "parse_string_to_f64")]
     pub mark_price: f64,
     #[serde(rename = "mmrSysUpdatedTime")]
     pub mmr_sys_updated_time: String,
     #[serde(rename = "positionBalance")]
-    #[serde(deserialize_with = "parse_string_to_f64")]
-    pub position_balance: f64,
+    #[serde(deserialize_with = "parse_string_to_option_f64")]
+    pub position_balance: Option<f64>,
     #[serde(rename = "positionIM")]
     #[serde(deserialize_with = "parse_string_to_f64")]
     pub position_im: f64,
@@ -339,8 +337,8 @@ pub struct PositionInfo {
     #[serde(rename = "riskId")]
     pub risk_id: i32,
     #[serde(rename = "riskLimitValue")]
-    #[serde(deserialize_with = "parse_string_to_f64")]
-    pub risk_limit_value: f64,
+    #[serde(deserialize_with = "parse_string_to_option_f64")]
+    pub risk_limit_value: Option<f64>,
     pub seq: i64,
     #[serde(rename = "sessionAvgPrice")]
     pub session_avg_price: String,
@@ -357,8 +355,8 @@ pub struct PositionInfo {
     #[serde(rename = "tradeMode")]
     pub trade_mode: i32,
     #[serde(rename = "trailingStop")]
-    #[serde(deserialize_with = "parse_string_to_f64")]
-    pub trailing_stop: f64,
+    #[serde(deserialize_with = "parse_string_to_option_f64")]
+    pub trailing_stop: Option<f64>,
     #[serde(rename = "unrealisedPnl")]
     #[serde(deserialize_with = "parse_string_to_f64")]
     pub unrealised_pnl: f64,

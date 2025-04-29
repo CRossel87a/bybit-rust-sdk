@@ -28,7 +28,8 @@ pub const RECV_WINDOW: &str = "5000";
 #[serde(rename_all = "lowercase")]
 pub enum Category {
     Spot,
-    Linear
+    Linear,
+    Option
 }
 
 #[derive(Serialize, Deserialize, Debug)]
