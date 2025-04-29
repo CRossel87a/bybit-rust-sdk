@@ -528,6 +528,35 @@ impl Bybit {
         Ok(map)
     }
 
+    pub async fn get_options_tickers(&self, base_coin: &str) -> anyhow::Result<Vec<OptionTickerData>> {
+
+        let endpoint = "/v5/market/tickers";
+
+        let params = json!({
+            "category": Category::Option,
+            "baseCoin": base_coin
+        });
+
+        let resp = self.get_request(endpoint, params).await?;
+        let txt = resp.text().await?;
+        //println!("resp: {txt}");
+
+        let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+        if resp.ret_code != 0 {
+            bail!("bybit err resp: {}", resp.ret_msg);
+        }
+
+        let list_value = resp
+        .result
+        .get("list")
+        .cloned()                      // turn &Value into Value
+        .context("failed to extract contract list from response")?;
+
+        let data: Vec<OptionTickerData> = serde_json::from_value(list_value)?;
+        Ok(data)
+    }
+
     pub async fn get_position_info(&self, category: Category,settle_coin: &str) -> anyhow::Result<HashMap<String, PositionInfo>> {
 
         let endpoint = "/v5/position/list";
@@ -671,13 +700,14 @@ mod tests {
     }
 
     #[tokio::test]
-    pub async fn test_get_futures_tickers() {
+    pub async fn test_get_options_tickers() {
         let (api_key, api_secret) = unlock_keys().unwrap();
 
         let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
 
-        let map = bybit.get_futures_tickers(Some("DEGENUSDT")).await.unwrap();
-        dbg!(map);
+        let v = bybit.get_options_tickers("ETH").await.unwrap();
+        dbg!(v.first().unwrap());
+        dbg!(v.len());
     }
 
     #[tokio::test]

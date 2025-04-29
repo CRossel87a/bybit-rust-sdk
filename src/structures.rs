@@ -443,6 +443,73 @@ pub struct SpotTickerData {
     pub volume_24h: f64,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct OptionTickerData {
+    // ───── level-1 quotes ─────
+    #[serde(rename = "ask1Iv",   deserialize_with = "parse_string_to_f64")]
+    pub ask1_iv: f64,
+    #[serde(rename = "ask1Price", deserialize_with = "parse_string_to_f64")]
+    pub ask1_price: f64,
+    #[serde(rename = "ask1Size",  deserialize_with = "parse_string_to_f64")]
+    pub ask1_size: f64,
+
+    #[serde(rename = "bid1Iv",    deserialize_with = "parse_string_to_f64")]
+    pub bid1_iv: f64,
+    #[serde(rename = "bid1Price", deserialize_with = "parse_string_to_f64")]
+    pub bid1_price: f64,
+    #[serde(rename = "bid1Size",  deserialize_with = "parse_string_to_f64")]
+    pub bid1_size: f64,
+
+
+    // ───── basic greeks & mark ─────
+    #[serde(rename = "delta",     deserialize_with = "parse_string_to_f64")]
+    pub delta: f64,
+    #[serde(rename = "gamma",     deserialize_with = "parse_string_to_f64")]
+    pub gamma: f64,
+    #[serde(rename = "theta",     deserialize_with = "parse_string_to_f64")]
+    pub theta: f64,
+    #[serde(rename = "vega",      deserialize_with = "parse_string_to_f64")]
+    pub vega: f64,
+    #[serde(rename = "markIv",    deserialize_with = "parse_string_to_f64")]
+    pub mark_iv: f64,
+    #[serde(rename = "markPrice", deserialize_with = "parse_string_to_f64")]
+    pub mark_price: f64,
+
+    // ───── spot / index linkage ─────
+    #[serde(rename = "indexPrice",       deserialize_with = "parse_string_to_f64")]
+    pub index_price: f64,
+    #[serde(rename = "underlyingPrice",  deserialize_with = "parse_string_to_f64")]
+    pub underlying_price: f64,
+    #[serde(rename = "predictedDeliveryPrice", deserialize_with = "parse_string_to_f64")]
+    pub predicted_delivery_price: f64,
+
+
+    // ───── 24-h stats ─────
+    #[serde(rename = "change24h",     deserialize_with = "parse_string_to_f64")]
+    pub change_24h: f64,
+    #[serde(rename = "highPrice24h",  deserialize_with = "parse_string_to_f64")]
+    pub high_price_24h: f64,
+    #[serde(rename = "lowPrice24h",   deserialize_with = "parse_string_to_f64")]
+    pub low_price_24h: f64,
+    #[serde(rename = "turnover24h",   deserialize_with = "parse_string_to_f64")]
+    pub turnover_24h: f64,
+    #[serde(rename = "volume24h",     deserialize_with = "parse_string_to_f64")]
+    pub volume_24h: f64,
+
+    // ───── running totals ─────
+    #[serde(rename = "totalTurnover", deserialize_with = "parse_string_to_f64")]
+    pub total_turnover: f64,
+    #[serde(rename = "totalVolume",   deserialize_with = "parse_string_to_f64")]
+    pub total_volume: f64,
+
+    // ───── position-level ─────
+    #[serde(rename = "openInterest", deserialize_with = "parse_string_to_f64")]
+    pub open_interest: f64,
+
+    // ───── anything that is already a string ─────
+    pub symbol: String,
+}
+
 pub struct NewOrder {
     pub symbol: String,
     pub side: TradeDirection,
