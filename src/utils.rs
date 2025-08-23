@@ -31,3 +31,22 @@ where
         _ => Err(serde::de::Error::custom("Invalid type")),
     }
 }
+
+pub fn parse_string_to_option_f64<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Value = Deserialize::deserialize(deserializer)?;
+    match value {
+        Value::String(s) => {
+            if s.is_empty() {
+                Ok(None)
+            } else {
+                s.parse::<f64>().map(Some).map_err(serde::de::Error::custom)
+            }
+        }
+        Value::Number(n) => n.as_f64().map(Some).ok_or_else(|| serde::de::Error::custom("Invalid number")),
+        Value::Null => Ok(None),
+        _ => Err(serde::de::Error::custom("Invalid type")),
+    }
+}
