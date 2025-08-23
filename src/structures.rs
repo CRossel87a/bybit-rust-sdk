@@ -133,26 +133,26 @@ pub struct Order {
 pub struct AccountInfo {
     #[serde(rename = "totalEquity", deserialize_with = "parse_string_to_f64")]
     pub total_equity: f64,
-    #[serde(rename = "accountIMRate", deserialize_with = "parse_string_to_f64")]
-    pub account_im_rate: f64,
-    #[serde(rename = "totalMarginBalance", deserialize_with = "parse_string_to_f64")]
-    pub total_margin_balance: f64,
-    #[serde(rename = "totalInitialMargin", deserialize_with = "parse_string_to_f64")]
-    pub total_initial_margin: f64,
+    //#[serde(rename = "accountIMRate", deserialize_with = "parse_string_to_f64")]
+    //pub account_im_rate: f64,
+    #[serde(rename = "totalMarginBalance")]
+    pub total_margin_balance: String,
+    #[serde(rename = "totalInitialMargin")]
+    pub total_initial_margin: String,
     #[serde(rename = "accountType")]
     pub account_type: String,
-    #[serde(rename = "totalAvailableBalance", deserialize_with = "parse_string_to_f64")]
-    pub total_available_balance: f64,
-    #[serde(rename = "accountMMRate", deserialize_with = "parse_string_to_f64")]
-    pub account_mm_rate: f64,
+    #[serde(rename = "totalAvailableBalance")]
+    pub total_available_balance: String,
+    //#[serde(rename = "accountMMRate", deserialize_with = "parse_string_to_f64")]
+    //pub account_mm_rate: f64,
     #[serde(rename = "totalPerpUPL", deserialize_with = "parse_string_to_f64")]
     pub total_perp_upl: f64,
     #[serde(rename = "totalWalletBalance", deserialize_with = "parse_string_to_f64")]
     pub total_wallet_balance: f64,
-    #[serde(rename = "accountLTV", deserialize_with = "parse_string_to_f64")]
-    pub account_ltv: f64,
-    #[serde(rename = "totalMaintenanceMargin", deserialize_with = "parse_string_to_f64")]
-    pub total_maintenance_margin: f64,
+    //#[serde(rename = "accountLTV", deserialize_with = "parse_string_to_f64")]
+    //pub account_ltv: f64,
+    #[serde(rename = "totalMaintenanceMargin")]
+    pub total_maintenance_margin: String,
     pub coin: Vec<CoinInfo>,
 }
 
