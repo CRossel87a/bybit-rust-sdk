@@ -24,12 +24,13 @@ pub const REST_API_URL: &str = "https://api.bybit.com";
 
 pub const RECV_WINDOW: &str = "5000";
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum Category {
     Spot,
     Linear,
-    Option
+    Option,
+    Inverse
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -557,14 +558,21 @@ impl Bybit {
         Ok(data)
     }
 
-    pub async fn get_position_info(&self, category: Category,settle_coin: &str) -> anyhow::Result<HashMap<String, PositionInfo>> {
+    pub async fn get_position_info(&self, category: Category,settle_coin: Option<&str>) -> anyhow::Result<HashMap<String, PositionInfo>> {
 
         let endpoint = "/v5/position/list";
 
-        let params = json!({
+        let mut params = json!({
             "category": category,
-            "settleCoin": settle_coin
         });
+
+        if category.eq(&Category::Linear) && settle_coin.is_none() {
+            bail!("settleCoin is required for linear");
+        }
+
+        if let Some(coin) = settle_coin {
+            params["settleCoin"] = json!(coin);
+        }
 
 
         let resp = self.get_request(endpoint, params).await?;
@@ -721,12 +729,22 @@ mod tests {
     }
 
     #[tokio::test]
-    pub async fn test_get_position_info() {
+    pub async fn test_get_linear_position_info() {
         let (api_key, api_secret) = unlock_keys().unwrap();
 
         let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
 
-        let map = bybit.get_position_info(Category::Linear, "USDT").await.unwrap();
+        let map = bybit.get_position_info(Category::Linear, Some("USDT")).await.unwrap();
+        dbg!(map);
+    }
+
+    #[tokio::test]
+    pub async fn test_get_inverse_position_info() {
+        let (api_key, api_secret) = unlock_keys().unwrap();
+
+        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
+
+        let map = bybit.get_position_info(Category::Inverse, None).await.unwrap();
         dbg!(map);
     }
 }
