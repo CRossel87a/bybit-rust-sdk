@@ -285,7 +285,7 @@ pub struct LotSizeFilter {
     pub min_notional_value: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct PositionInfo {
     #[serde(rename = "adlRankIndicator")]
     pub adl_rank_indicator: i32,
