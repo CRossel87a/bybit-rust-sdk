@@ -1,5 +1,5 @@
 use anyhow::ensure;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use crate::utils::{parse_string_to_f64, parse_string_to_option_f64};
 use crate::{OrderType, TimeInForce, TradeDirection};
@@ -364,66 +364,61 @@ pub struct PositionInfo {
     pub updated_time: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct TickerData {
-    #[serde(rename = "ask1Price", deserialize_with = "parse_string_to_f64")]
-    pub ask1_price: f64,
-    #[serde(rename = "ask1Size", deserialize_with = "parse_string_to_f64")]
-    pub ask1_size: f64,
+    #[serde(rename = "ask1Price")]
+    pub ask1_price: String,
+    #[serde(rename = "ask1Size")]
+    pub ask1_size: String,
     pub basis: String,
     #[serde(rename = "basisRate")]
     pub basis_rate: String,
-    #[serde(rename = "bid1Price", deserialize_with = "parse_string_to_f64")]
-    pub bid1_price: f64,
-    #[serde(rename = "bid1Size", deserialize_with = "parse_string_to_f64")]
-    pub bid1_size: f64,
+    #[serde(rename = "bid1Price")]
+    pub bid1_price: String,
+    #[serde(rename = "bid1Size")]
+    pub bid1_size: String,
     #[serde(rename = "curPreListingPhase")]
     pub cur_pre_listing_phase: String,
     #[serde(rename = "deliveryFeeRate")]
     pub delivery_fee_rate: String,
-    #[serde(rename = "deliveryTime", deserialize_with = "parse_string_to_f64")]
-    pub delivery_time: f64,
-    #[serde(rename = "fundingRate", deserialize_with = "parse_string_to_f64")]
-    pub funding_rate: f64,
-    #[serde(rename = "highPrice24h", deserialize_with = "parse_string_to_f64")]
-    pub high_price_24h: f64,
-    #[serde(rename = "indexPrice", deserialize_with = "parse_string_to_f64")]
-    pub index_price: f64,
-    #[serde(rename = "lastPrice", deserialize_with = "parse_string_to_f64")]
-    pub last_price: f64,
-    #[serde(rename = "lowPrice24h", deserialize_with = "parse_string_to_f64")]
-    pub low_price_24h: f64,
-    #[serde(rename = "markPrice", deserialize_with = "parse_string_to_f64")]
-    pub mark_price: f64,
-    #[serde(rename = "nextFundingTime", deserialize_with = "parse_string_to_f64")]
-    pub next_funding_time: f64,
-    #[serde(rename = "openInterest", deserialize_with = "parse_string_to_f64")]
-    pub open_interest: f64,
-    #[serde(rename = "openInterestValue", deserialize_with = "parse_string_to_f64")]
-    pub open_interest_value: f64,
-    #[serde(rename = "preOpenPrice")]
-    pub pre_open_price: String,
-    #[serde(rename = "preQty")]
-    pub pre_qty: String,
-    #[serde(rename = "predictedDeliveryPrice")]
-    pub predicted_delivery_price: String,
-    #[serde(rename = "prevPrice1h", deserialize_with = "parse_string_to_f64")]
-    pub prev_price_1h: f64,
-    #[serde(rename = "prevPrice24h", deserialize_with = "parse_string_to_f64")]
-    pub prev_price_24h: f64,
-    #[serde(rename = "price24hPcnt", deserialize_with = "parse_string_to_f64")]
-    pub price_24h_pcnt: f64,
+    #[serde(rename = "deliveryTime")]
+    pub delivery_time: String,
+    #[serde(rename = "fundingRate")]
+    pub funding_rate: String,
+    #[serde(rename = "highPrice24h")]
+    pub high_price_24h: String,
+    #[serde(rename = "indexPrice")]
+    pub index_price: String,
+    #[serde(rename = "lastPrice")]
+    pub last_price: String,
+    #[serde(rename = "lowPrice24h")]
+    pub low_price_24h: String,
+    #[serde(rename = "markPrice")]
+    pub mark_price: String,
+    #[serde(rename = "nextFundingTime")]
+    pub next_funding_time: String,
+    #[serde(rename = "openInterest")]
+    pub open_interest: String,
+    #[serde(rename = "openInterestValue")]
+    pub open_interest_value: String,
+    #[serde(rename = "prevPrice1h")]
+    pub prev_price_1h: String,
+    #[serde(rename = "prevPrice24h")]
+    pub prev_price_24h: String,
+    #[serde(rename = "price24hPcnt")]
+    pub price_24h_pcnt: String,
     pub symbol: String,
-    #[serde(rename = "turnover24h", deserialize_with = "parse_string_to_f64")]
-    pub turnover_24h: f64,
-    #[serde(rename = "volume24h", deserialize_with = "parse_string_to_f64")]
-    pub volume_24h: f64,
+    #[serde(rename = "turnover24h")]
+    pub turnover_24h: String,
+    #[serde(rename = "volume24h")]
+    pub volume_24h: String,
 }
 
 impl TickerData {
-    pub fn annualized_funding(&self, funding_interval: u64) -> f64 {
+    pub fn annualized_funding(&self, funding_interval: u64) -> anyhow::Result<f64> {
         let frequenzy = funding_interval as f64 / 60.0 / 24.0; // 4
-        self.funding_rate * 365.0 / frequenzy
+        let r = self.funding_rate.parse::<f64>()? * 365.0 / frequenzy;
+        Ok(r)
     }
 }
 

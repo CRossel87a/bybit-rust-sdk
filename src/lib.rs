@@ -496,6 +496,8 @@ impl Bybit {
         let txt = resp.text().await?;
         //println!("resp: {txt}");
 
+        //std::fs::write("ftickersraw.json", &txt).unwrap();
+
         let resp: BybitResponse = serde_json::from_str(&txt)?;
 
         if resp.ret_code != 0 {
