@@ -420,6 +420,13 @@ pub struct TickerData {
     pub volume_24h: f64,
 }
 
+impl TickerData {
+    pub fn annualized_funding(&self, funding_interval: u64) -> f64 {
+        let frequenzy = funding_interval as f64 / 60.0 / 24.0; // 4
+        self.funding_rate * 365.0 / frequenzy
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct SpotTickerData {
     #[serde(rename = "ask1Price", deserialize_with = "parse_string_to_f64")]

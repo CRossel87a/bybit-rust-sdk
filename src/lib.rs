@@ -175,6 +175,35 @@ impl Bybit {
         Ok(resp)
     }
 
+    pub async fn get_request_no_sign(&self, endpoint: &str, params: Value) -> anyhow::Result<Response> {
+
+        let timestamp = get_timestamp();
+
+        let mut headers = HeaderMap::new();
+        
+        headers.insert("X-BAPI-TIMESTAMP", HeaderValue::from_str(&timestamp.to_string())?);
+        headers.insert("X-BAPI-RECV-WINDOW", HeaderValue::from_str(RECV_WINDOW)?);
+        headers.insert("Content-Type", HeaderValue::from_static("application/json"));
+
+        let url = format!("{REST_API_URL}{endpoint}");
+
+        let obj = params.as_object().ok_or_else(|| anyhow!("Expected json object"))?;
+
+        let query_string: Vec<String> = obj.iter().map(|(key, value)| {
+            format!("{}={}", key, value.as_str().unwrap_or(""))
+        }).collect();
+
+        let request = query_string.join("&");
+        //println!("request: {request}");
+
+        let full_url = format!("{}?{}", url, request);
+        //println!("full url: {full_url}");
+
+        let resp = self.client.get(full_url).headers(headers).send().await?;
+
+        Ok(resp)
+    }
+
     pub async fn cancel_order(&self, category: Category, symbol: &str, order_id: OrderId) -> anyhow::Result<()> {
         let endpoint = "/v5/order/cancel";
 
@@ -424,7 +453,7 @@ impl Bybit {
             params["symbol"] = json!(symbol);
         }
 
-        let resp = self.get_request(endpoint, params).await?;
+        let resp = self.get_request_no_sign(endpoint, params).await?;
         let txt = resp.text().await?;
         //println!("resp: {txt}");
 
@@ -463,7 +492,7 @@ impl Bybit {
             params["symbol"] = json!(symbol);
         }
 
-        let resp = self.get_request(endpoint, params).await?;
+        let resp = self.get_request_no_sign(endpoint, params).await?;
         let txt = resp.text().await?;
         //println!("resp: {txt}");
 
@@ -695,16 +724,6 @@ mod tests {
 
         let balance = bybit.get_wallet_balance(AccountType::UNIFIED, None).await.unwrap();
         dbg!(balance);
-    }
-
-    #[tokio::test]
-    pub async fn test_get_instrument_info() {
-        let (api_key, api_secret) = unlock_keys().unwrap();
-
-        let bybit = Bybit::new(Some(api_key), Some(api_secret), None).unwrap();
-
-        let map = bybit.get_instrument_info(Category::Linear, Some("GLMRUSDT")).await.unwrap();
-        dbg!(map);
     }
 
     #[tokio::test]
