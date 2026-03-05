@@ -480,6 +480,53 @@ impl Bybit {
         Ok(map)
     }
 
+    pub async fn get_instrument_info_all(&self, category: Category) -> anyhow::Result<HashMap<String, ContractInfo>> {
+        let endpoint = "/v5/market/instruments-info";
+        let mut map: HashMap<String, ContractInfo> = HashMap::default();
+        let mut cursor: Option<String> = None;
+
+        loop {
+            let mut params = json!({
+                "category": category,
+                "limit": "1000",
+            });
+
+            if let Some(ref c) = cursor {
+                params["cursor"] = json!(c);
+            }
+
+            let resp = self.get_request_no_sign(endpoint, params).await?;
+            let txt = resp.text().await?;
+            let resp: BybitResponse = serde_json::from_str(&txt)?;
+
+            if resp.ret_code != 0 {
+                bail!("bybit err resp: {}", resp.ret_msg);
+            }
+
+            let contract_list = resp.result
+                .get("list")
+                .and_then(Value::as_array)
+                .context("Failed to extract contract list from response")?;
+
+            for contract in contract_list.iter() {
+                let info: ContractInfo = serde_json::from_value(contract.clone())?;
+                map.insert(info.symbol.clone(), info);
+            }
+
+            let next_cursor = resp.result
+                .get("nextPageCursor")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+
+            if next_cursor.is_empty() {
+                break;
+            }
+            cursor = Some(next_cursor.to_string());
+        }
+
+        Ok(map)
+    }
+
     pub async fn get_futures_tickers(&self, symbol_op: Option<&str>) -> anyhow::Result<HashMap<String, TickerData>> {
 
         let endpoint = "/v5/market/tickers";

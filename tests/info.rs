@@ -31,6 +31,16 @@ pub async fn test_get_funding_info() {
 }
 
 #[tokio::test]
+pub async fn test_get_instrument_info_all_paginated() {
+    let bybit = Bybit::new(None, None, None).unwrap();
+
+    let map = bybit.get_instrument_info_all(Category::Linear).await.unwrap();
+    println!("Total instruments (paginated): {}", map.len());
+    assert!(map.len() > 500, "Should have more than 500 instruments");
+    assert!(map.contains_key("SUSDT"), "Should contain SUSDT");
+}
+
+#[tokio::test]
 pub async fn test_get_all_funding_info() {
     let bybit = Bybit::new(None, None, None).unwrap();
 
